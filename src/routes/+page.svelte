@@ -1,6 +1,9 @@
 <script lang="ts">
-	import { each } from 'svelte/internal';
+	import dayjs from 'dayjs';
 	import '../app.css';
+	import DateInput from '../lib/DateInput.svelte';
+
+	const TABLE_DATE_FORMAT = 'DD/MM';
 
 	const moneyFormatter = new Intl.NumberFormat('ie-IE', { style: 'currency', currency: 'EUR' });
 
@@ -15,11 +18,7 @@
 	const salary = 2395;
 	const fixedExpenses = [750, 40];
 	let savingTarget = 500;
-	let runningExpenses: [string, number][] = [
-		['19/03', 55],
-		['18/03', 25],
-		['17/03', 2]
-	];
+	let runningExpenses: [Date, number][] = [];
 	$: remainingMoney =
 		salary -
 		savingTarget -
@@ -29,6 +28,10 @@
 				return couple[1];
 			})
 		);
+
+	let inputExpenseDate = new Date();
+	let inputExpenseAmount: null | number = null;
+	let tableEditDisabled = true;
 </script>
 
 <main class="p-4">
@@ -62,20 +65,76 @@
 	</div>
 
 	<div class="mt-2">
-		<h1 class="text-xl font-bold">Expenses</h1>
-		<table class="w-[400px]">
-			<thead class="text-left">
-				<th class="w-2/12">Date</th>
-				<th>Amount</th>
-			</thead>
-			<tbody>
-				{#each runningExpenses as [date, amount]}
+		<div class="flex space-x-3 items-center">
+			<h1 class="text-xl font-bold">Expenses</h1>
+			<button
+				on:click={() => {
+					tableEditDisabled = !tableEditDisabled;
+				}}>✍️</button
+			>
+			<!-- <button class="p-2 bg-blue-400 rounded-xl text-gray-100 font-bold hover:bg-blue-300"
+				>New expense</button
+			> -->
+		</div>
+		<form
+			on:submit|preventDefault={() => {
+				let now = new Date();
+
+				if (
+					dayjs(inputExpenseDate).format(TABLE_DATE_FORMAT) == dayjs(now).format(TABLE_DATE_FORMAT)
+				) {
+					inputExpenseDate = now;
+				}
+				runningExpenses.push([inputExpenseDate, inputExpenseAmount ?? 0]);
+				runningExpenses = runningExpenses;
+				inputExpenseAmount = null;
+			}}
+		>
+			<table class="w-[300px]">
+				<thead class="text-left ">
+					<th class="">Date</th>
+					<th class="w-4/12">Amount</th>
+					<th class="w-2/12" />
+				</thead>
+				<tbody>
 					<tr>
-						<td class="w-2/12">{date}</td>
-						<td>{formatMoney(amount)}</td>
+						<td><DateInput bind:date={inputExpenseDate} dateMin="2023-02-25" maxToday /></td>
+						<td class=""
+							><input
+								class="border-black border w-10/12 px-2 py-1"
+								type="number"
+								bind:value={inputExpenseAmount}
+								required
+							/></td
+						>
+						<td class="w-2/12 py-4"><button type="submit">✅</button></td>
 					</tr>
-				{/each}
-			</tbody>
-		</table>
+					{#each runningExpenses.sort((a, b) => {
+						if (a[0] > b[0]) {
+							return -1;
+						} else {
+							return 1;
+						}
+					}) as [date, amount], i}
+						<tr>
+							<td class="">{dayjs(date).format('DD/MM')}</td>
+							<td class="w-4/12">{formatMoney(amount)}</td>
+							<td class="w-2/12 py-2"
+								><button
+									type="button"
+									class="disabled:opacity-50"
+									disabled={tableEditDisabled}
+									on:click={() => {
+										runningExpenses.splice(i, 1);
+										runningExpenses = runningExpenses;
+										tableEditDisabled = true;
+									}}>❌</button
+								></td
+							>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</form>
 	</div>
 </main>
