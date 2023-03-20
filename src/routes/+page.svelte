@@ -5,7 +5,12 @@
 
 	const TABLE_DATE_FORMAT = 'DD/MM';
 
-	const moneyFormatter = new Intl.NumberFormat('ie-IE', { style: 'currency', currency: 'EUR' });
+	const moneyFormatter = new Intl.NumberFormat('ie-IE', {
+		style: 'currency',
+		currency: 'EUR',
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0
+	});
 
 	function formatMoney(money: number): string {
 		return moneyFormatter.format(money);
@@ -35,9 +40,9 @@
 </script>
 
 <main class="p-4">
-	<div class="text-xs mb-2">Current period: Feb 25th 2023 - Mar 25th 2023</div>
+	<div class="text-xs mb-2">Mar 25th 2023 - Apr 25th 2023</div>
 	<div class="flex space-x-4">
-		<div class="border-black p-3 border-2 w-100 h-100">
+		<div class="border-black p-3 border-2 min-w-[150px] h-100">
 			<h1>Remaining</h1>
 			<div class="text-3xl text-center">{formatMoney(remainingMoney)}</div>
 			<div class="text-sm mt-1">
