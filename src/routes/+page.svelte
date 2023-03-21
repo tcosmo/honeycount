@@ -72,7 +72,6 @@
 		}
 
 		state = stateFromLocalStorage();
-		console.log(state);
 	});
 
 	$: currentPeriodEndDate = dayjs(state.currentPeriodStartDate).add(1, 'month').toDate();
