@@ -1,5 +1,6 @@
 <script lang="ts">
 	import dayjs from 'dayjs';
+	import { onMount } from 'svelte';
 	import '../app.css';
 	import DateInput from '../lib/DateInput.svelte';
 
@@ -20,49 +21,194 @@
 		return array.reduce((partialSum, a) => partialSum + a, 0);
 	}
 
-	const salary = 2395;
-	const fixedExpenses = [750, 40];
-	let savingTarget = 500;
-	let runningExpenses: [Date, number][] = [];
+	interface State {
+		currentPeriodStartDate: Date;
+		salary: Record<string, number>;
+		fixedExpensesTotal: Record<string, number>;
+		savingTarget: Record<string, number>;
+		runningExpenses: [Date, number][];
+	}
+
+	const DEFAULT_SALARY = 2395;
+	const DEFAULT_FIXED_EXPENSES = 750 + 40;
+	const DEFAULT_SAVING_TARGET = 500;
+
+	function defaultState(): State {
+		const currentPeriodStartDate = dayjs('2023-03-25', 'YYYY-MM-DD').toDate();
+		return {
+			currentPeriodStartDate: currentPeriodStartDate,
+			salary: { [currentPeriodStartDate.toISOString()]: DEFAULT_SALARY },
+			fixedExpensesTotal: { [currentPeriodStartDate.toISOString()]: DEFAULT_FIXED_EXPENSES },
+			savingTarget: { [currentPeriodStartDate.toISOString()]: DEFAULT_SAVING_TARGET },
+			runningExpenses: []
+		};
+	}
+
+	function stateToJSON(state: State): string {
+		return JSON.stringify(state);
+	}
+
+	function stateFromJSON(stateJSON: string | null): State | null {
+		if (stateJSON === null) return null;
+		const toReturn = JSON.parse(stateJSON);
+		toReturn.currentPeriodStartDate = new Date(Date.parse(toReturn.currentPeriodStartDate));
+		return toReturn;
+	}
+
+	const DEFAULT_STORE_ID = 'honeycount';
+	function stateToLocalStorage(state: State) {
+		window.localStorage.setItem(DEFAULT_STORE_ID, stateToJSON(state));
+	}
+
+	function stateFromLocalStorage(): State {
+		return stateFromJSON(window.localStorage.getItem(DEFAULT_STORE_ID)) ?? defaultState();
+	}
+
+	let state: State = defaultState();
+	onMount(() => {
+		state = stateFromLocalStorage();
+		console.log(state);
+	});
+
+	$: currentPeriodEndDate = dayjs(state.currentPeriodStartDate).add(1, 'month').toDate();
+
 	$: remainingMoney =
-		salary -
-		savingTarget -
-		arraySum(fixedExpenses) -
+		state.salary[state.currentPeriodStartDate.toISOString()] -
+		state.savingTarget[state.currentPeriodStartDate.toISOString()] -
+		state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()] -
 		arraySum(
-			runningExpenses.map((couple) => {
-				return couple[1];
-			})
+			state.runningExpenses
+				.filter(([date, _amount]) => {
+					return date >= state.currentPeriodStartDate && date < currentPeriodEndDate;
+				})
+				.map(([_date, amount]) => {
+					return amount;
+				})
 		);
+
+	let perDiem = 0;
+	$: {
+		const now = new Date();
+		if (now >= state.currentPeriodStartDate && now < currentPeriodEndDate) {
+			perDiem = remainingMoney / dayjs(currentPeriodEndDate).diff(dayjs(now), 'days');
+		} else if (now < state.currentPeriodStartDate) {
+			perDiem = perDiem =
+				remainingMoney /
+				dayjs(currentPeriodEndDate).diff(dayjs(state.currentPeriodStartDate), 'days');
+		} else {
+			perDiem = remainingMoney;
+		}
+	}
+
+	function changePeriod(monthDelta: number) {
+		const oldPeriodStartDate = state.currentPeriodStartDate;
+		if (monthDelta < 0) {
+			state.currentPeriodStartDate = dayjs(state.currentPeriodStartDate)
+				.subtract(Math.abs(monthDelta), 'month')
+				.toDate();
+		} else {
+			state.currentPeriodStartDate = dayjs(state.currentPeriodStartDate)
+				.add(monthDelta, 'month')
+				.toDate();
+		}
+
+		if (state.savingTarget[state.currentPeriodStartDate.toISOString()] === undefined) {
+			state.savingTarget[state.currentPeriodStartDate.toISOString()] = DEFAULT_SAVING_TARGET;
+		}
+
+		if (state.salary[state.currentPeriodStartDate.toISOString()] === undefined) {
+			state.salary[state.currentPeriodStartDate.toISOString()] =
+				state.salary[oldPeriodStartDate.toISOString()];
+		}
+
+		if (state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()] === undefined) {
+			state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()] =
+				state.fixedExpensesTotal[oldPeriodStartDate.toISOString()];
+		}
+	}
 
 	let inputExpenseDate = new Date();
 	let inputExpenseAmount: null | number = null;
 	let tableEditDisabled = true;
+	let showSettings = false;
 </script>
 
 <main class="p-4">
-	<div class="text-xs mb-2">Mar 25th 2023 - Apr 25th 2023</div>
+	<div class="flex items-center mb-2 space-x-3">
+		<div class="text-xs mb-2">
+			{dayjs(state.currentPeriodStartDate).format('MMM DD, YYYY')} - {dayjs(
+				currentPeriodEndDate
+			).format('MMM DD, YYYY')}
+		</div>
+		<div class="flex space-x-3">
+			<button
+				class="border border-black px-2 hover:bg-gray-200"
+				on:click={() => {
+					changePeriod(-1);
+					stateToLocalStorage(state);
+				}}>←</button
+			>
+			<button
+				class="border border-black px-2 hover:bg-gray-200"
+				on:click={() => {
+					changePeriod(1);
+					stateToLocalStorage(state);
+				}}>→</button
+			>
+			<button
+				class="border border-black px-2 hover:bg-gray-200"
+				on:click={() => {
+					showSettings = !showSettings;
+				}}>⚙️</button
+			>
+		</div>
+	</div>
+
+	{#if showSettings}
+		<div class="flex flex-col items-start space-y-2 text-sm mb-2">
+			<div>
+				Period salary: <input
+					type="number"
+					class="border border-black p-1 w-4/12"
+					bind:value={state.salary[state.currentPeriodStartDate.toISOString()]}
+				/>
+			</div>
+			<div>
+				Period fixed expenses: <input
+					class="border border-black  p-1 w-4/12"
+					type="number"
+					bind:value={state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()]}
+				/>
+			</div>
+		</div>
+	{/if}
+
 	<div class="flex space-x-4">
 		<div class="border-black p-3 border-2 min-w-[150px] h-100">
 			<h1>Remaining</h1>
 			<div class="text-3xl text-center">{formatMoney(remainingMoney)}</div>
 			<div class="text-sm mt-1">
-				{formatMoney(remainingMoney / 30)} <span class="text-xs italic">per diem</span>
+				{formatMoney(perDiem)} <span class="text-xs italic">per diem</span>
 			</div>
 		</div>
 		<div class="border-black p-3 border-2 w-100 h-100">
 			<h1>Saving target</h1>
-			<div class="text-2xl text-center">{formatMoney(savingTarget)}</div>
+			<div class="text-2xl text-center">
+				{formatMoney(state.savingTarget[state.currentPeriodStartDate.toISOString()])}
+			</div>
 			<div class="mt-2 flex w-full justify-between px-2">
 				<button
 					class="border-2 border-black px-2 hover:bg-gray-200"
 					on:click={() => {
-						savingTarget -= 10;
+						state.savingTarget[state.currentPeriodStartDate.toISOString()] -= 10;
+						stateToLocalStorage(state);
 					}}>-</button
 				>
 				<button
 					class="border-2 border-black px-2 hover:bg-gray-200"
 					on:click={() => {
-						savingTarget += 10;
+						state.savingTarget[state.currentPeriodStartDate.toISOString()] += 10;
+						stateToLocalStorage(state);
 					}}>+</button
 				>
 			</div>
@@ -90,9 +236,10 @@
 				) {
 					inputExpenseDate = now;
 				}
-				runningExpenses.push([inputExpenseDate, inputExpenseAmount ?? 0]);
-				runningExpenses = runningExpenses;
+				state.runningExpenses.push([inputExpenseDate, inputExpenseAmount ?? 0]);
+				state.runningExpenses = state.runningExpenses;
 				inputExpenseAmount = null;
+				stateToLocalStorage(state);
 			}}
 		>
 			<table class="w-[300px]">
@@ -114,7 +261,7 @@
 						>
 						<td class="w-2/12 py-4"><button type="submit">✅</button></td>
 					</tr>
-					{#each runningExpenses.sort((a, b) => {
+					{#each state.runningExpenses.sort((a, b) => {
 						if (a[0] > b[0]) {
 							return -1;
 						} else {
@@ -130,8 +277,8 @@
 									class="disabled:opacity-50"
 									disabled={tableEditDisabled}
 									on:click={() => {
-										runningExpenses.splice(i, 1);
-										runningExpenses = runningExpenses;
+										state.runningExpenses.splice(i, 1);
+										state.runningExpenses = state.runningExpenses;
 										tableEditDisabled = true;
 									}}>❌</button
 								></td
