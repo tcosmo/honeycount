@@ -65,7 +65,12 @@
 	}
 
 	let state: State = defaultState();
-	onMount(() => {
+	onMount(async () => {
+		if (navigator.storage && navigator.storage.persist) {
+			const isPersisted = await navigator.storage.persist();
+			console.log(`Persisted storage granted: ${isPersisted}`);
+		}
+
 		state = stateFromLocalStorage();
 		console.log(state);
 	});
