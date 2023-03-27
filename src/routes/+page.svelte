@@ -52,11 +52,22 @@
 		if (stateJSON === null) return null;
 		const toReturn = JSON.parse(stateJSON);
 		toReturn.currentPeriodStartDate = new Date(Date.parse(toReturn.currentPeriodStartDate));
+
+		for (let expense of toReturn.runningExpenses) {
+			expense[0] = new Date(Date.parse(expense[0]));
+		}
 		return toReturn;
 	}
 
 	const DEFAULT_STORE_ID = 'honeycount';
 	function stateToLocalStorage(state: State) {
+		state.runningExpenses = state.runningExpenses.sort((a, b) => {
+			if (a[0] > b[0]) {
+				return -1;
+			} else {
+				return 1;
+			}
+		});
 		window.localStorage.setItem(DEFAULT_STORE_ID, stateToJSON(state));
 	}
 
@@ -66,15 +77,13 @@
 
 	let state: State = defaultState();
 
-	function sortState() {
-		state.runningExpenses = state.runningExpenses.sort((a, b) => {
-			if (a[0] > b[0]) {
-				return -1;
-			} else {
-				return 1;
-			}
-		});
-	}
+	$: sortedRunningExpenses = state.runningExpenses.sort((a, b) => {
+		if (a[0] > b[0]) {
+			return -1;
+		} else {
+			return 1;
+		}
+	});
 
 	onMount(async () => {
 		if (navigator.storage && navigator.storage.persist) {
@@ -253,7 +262,6 @@
 				}
 				state.runningExpenses.push([inputExpenseDate, inputExpenseAmount ?? 0]);
 				state.runningExpenses = state.runningExpenses;
-				sortState();
 				inputExpenseAmount = null;
 				stateToLocalStorage(state);
 			}}
@@ -277,19 +285,18 @@
 						>
 						<td class="w-2/12 py-4"><button type="submit">✅</button></td>
 					</tr>
-					{#each state.runningExpenses as [date, amount], i}
+					{#each sortedRunningExpenses as [date, amount], i}
 						<tr>
 							<td class="">{dayjs(date).format('DD/MM')}</td>
 							<td class="w-4/12">{formatMoney(amount)}</td>
 							<td class="w-2/12 py-2"
 								><button
 									type="button"
-									class="disabled:opacity-50"
+									class="disabled:opacity-40"
 									disabled={tableEditDisabled}
 									on:click={() => {
 										state.runningExpenses.splice(i, 1);
 										state.runningExpenses = state.runningExpenses;
-										sortState();
 										tableEditDisabled = true;
 										stateToLocalStorage(state);
 									}}>❌</button
