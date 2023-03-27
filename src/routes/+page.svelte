@@ -57,6 +57,13 @@
 
 	const DEFAULT_STORE_ID = 'honeycount';
 	function stateToLocalStorage(state: State) {
+		state.runningExpenses = state.runningExpenses.sort((a, b) => {
+			if (a[0] > b[0]) {
+				return -1;
+			} else {
+				return 1;
+			}
+		});
 		window.localStorage.setItem(DEFAULT_STORE_ID, stateToJSON(state));
 	}
 
@@ -265,13 +272,7 @@
 						>
 						<td class="w-2/12 py-4"><button type="submit">✅</button></td>
 					</tr>
-					{#each state.runningExpenses.sort((a, b) => {
-						if (a[0] > b[0]) {
-							return -1;
-						} else {
-							return 1;
-						}
-					}) as [date, amount], i}
+					{#each state.runningExpenses as [date, amount], i}
 						<tr>
 							<td class="">{dayjs(date).format('DD/MM')}</td>
 							<td class="w-4/12">{formatMoney(amount)}</td>
@@ -284,6 +285,7 @@
 										state.runningExpenses.splice(i, 1);
 										state.runningExpenses = state.runningExpenses;
 										tableEditDisabled = true;
+										stateToLocalStorage(state);
 									}}>❌</button
 								></td
 							>
