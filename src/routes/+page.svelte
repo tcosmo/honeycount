@@ -34,7 +34,10 @@
 	const DEFAULT_SAVING_TARGET = 0;
 
 	function defaultState(): State {
-		const currentPeriodStartDate = dayjs('2023-03-25', 'YYYY-MM-DD').toDate();
+		const now = new Date();
+		const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+		const currentPeriodStartDate = firstDay;
+
 		return {
 			currentPeriodStartDate: currentPeriodStartDate,
 			salary: { [currentPeriodStartDate.toISOString()]: DEFAULT_SALARY },
@@ -85,13 +88,18 @@
 		}
 	});
 
+	let showSettings = false;
 	onMount(async () => {
 		if (navigator.storage && navigator.storage.persist) {
 			const isPersisted = await navigator.storage.persist();
 			console.log(`Persisted storage granted: ${isPersisted}`);
 		}
 
+		if (window.localStorage.getItem(DEFAULT_STORE_ID) == null) {
+			showSettings = true;
+		}
 		state = stateFromLocalStorage();
+		console.log(state);
 	});
 
 	$: currentPeriodEndDate = dayjs(state.currentPeriodStartDate).add(1, 'month').toDate();
@@ -176,7 +184,6 @@
 	let inputExpenseDate = new Date();
 	let inputExpenseAmount: null | number = null;
 	let tableEditDisabled = true;
-	let showSettings = false;
 </script>
 
 <main class="p-4">
@@ -203,6 +210,7 @@
 			>
 			<button
 				class="border border-black px-2 hover:bg-gray-200"
+				class:bg-gray-200={showSettings}
 				on:click={() => {
 					showSettings = !showSettings;
 				}}>⚙️</button
@@ -211,45 +219,50 @@
 	</div>
 
 	{#if showSettings}
-		<div class="flex flex-col items-start space-y-2 text-sm mb-2">
-			<div>
-				Period start date: <DateInput
-					bind:date={state.currentPeriodStartDate}
-					on:dateChanged={(_) => {
-						if (state.savingTarget[state.currentPeriodStartDate.toISOString()] === undefined) {
-							console.log('aa');
-							state.savingTarget[state.currentPeriodStartDate.toISOString()] =
-								DEFAULT_SAVING_TARGET;
-						}
+		<div>
+			<h1 class="text-xl font-bold">Settings</h1>
+			<div class="p-2">
+				<div class="flex flex-col items-start space-y-2 text-sm mb-2">
+					<div>
+						Period start date: <DateInput
+							bind:date={state.currentPeriodStartDate}
+							on:dateChanged={(_) => {
+								if (state.savingTarget[state.currentPeriodStartDate.toISOString()] === undefined) {
+									console.log('aa');
+									state.savingTarget[state.currentPeriodStartDate.toISOString()] =
+										DEFAULT_SAVING_TARGET;
+								}
 
-						if (state.salary[state.currentPeriodStartDate.toISOString()] === undefined) {
-							state.salary[state.currentPeriodStartDate.toISOString()] = DEFAULT_SALARY;
-						}
+								if (state.salary[state.currentPeriodStartDate.toISOString()] === undefined) {
+									state.salary[state.currentPeriodStartDate.toISOString()] = DEFAULT_SALARY;
+								}
 
-						if (
-							state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()] === undefined
-						) {
-							state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()] =
-								DEFAULT_FIXED_EXPENSES;
-						}
+								if (
+									state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()] === undefined
+								) {
+									state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()] =
+										DEFAULT_FIXED_EXPENSES;
+								}
 
-						stateToLocalStorage(state);
-					}}
-				/>
-			</div>
-			<div>
-				Period salary: <input
-					type="number"
-					class="border border-black p-1 w-4/12"
-					bind:value={state.salary[state.currentPeriodStartDate.toISOString()]}
-				/>
-			</div>
-			<div>
-				Period fixed expenses: <input
-					class="border border-black  p-1 w-4/12"
-					type="number"
-					bind:value={state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()]}
-				/>
+								stateToLocalStorage(state);
+							}}
+						/>
+					</div>
+					<div>
+						Period salary: <input
+							type="number"
+							class="border border-black p-1 w-4/12"
+							bind:value={state.salary[state.currentPeriodStartDate.toISOString()]}
+						/>
+					</div>
+					<div>
+						Period fixed expenses: <input
+							class="border border-black  p-1 w-4/12"
+							type="number"
+							bind:value={state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()]}
+						/>
+					</div>
+				</div>
 			</div>
 		</div>
 	{/if}
