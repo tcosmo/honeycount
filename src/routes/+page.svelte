@@ -29,9 +29,9 @@
 		runningExpenses: [Date, number][];
 	}
 
-	const DEFAULT_SALARY = 2395;
-	const DEFAULT_FIXED_EXPENSES = 750 + 40;
-	const DEFAULT_SAVING_TARGET = 500;
+	const DEFAULT_SALARY = 0;
+	const DEFAULT_FIXED_EXPENSES = 0;
+	const DEFAULT_SAVING_TARGET = 0;
 
 	function defaultState(): State {
 		const currentPeriodStartDate = dayjs('2023-03-25', 'YYYY-MM-DD').toDate();
@@ -110,11 +110,33 @@
 				})
 		);
 
+	$: moneySpentToday = arraySum(
+		state.runningExpenses
+			.filter(([date, _amount]) => {
+				let now = new Date();
+				return (
+					date.getDay() === now.getDay() &&
+					date.getFullYear() === now.getFullYear() &&
+					date.getMonth() === now.getMonth()
+				);
+			})
+			.map(([_date, amount]) => {
+				return amount;
+			})
+	);
+
+	$: remainingMoneyExcludingToday = remainingMoney + moneySpentToday;
+
 	let perDiem = 0;
+	let perDiemTomorrow: null | number = null;
 	$: {
 		const now = new Date();
 		if (now >= state.currentPeriodStartDate && now < currentPeriodEndDate) {
-			perDiem = remainingMoney / dayjs(currentPeriodEndDate).diff(dayjs(now), 'days');
+			perDiem = remainingMoneyExcludingToday / dayjs(currentPeriodEndDate).diff(dayjs(now), 'days');
+			let remainDaysTomorrow = dayjs(currentPeriodEndDate).diff(dayjs(now), 'days') - 1;
+			if (remainDaysTomorrow > 0) {
+				perDiemTomorrow = remainingMoney / remainDaysTomorrow;
+			}
 		} else if (now < state.currentPeriodStartDate) {
 			perDiem = perDiem =
 				remainingMoney /
@@ -190,6 +212,7 @@
 
 	{#if showSettings}
 		<div class="flex flex-col items-start space-y-2 text-sm mb-2">
+			<div>Period start date:</div>
 			<div>
 				Period salary: <input
 					type="number"
@@ -214,6 +237,18 @@
 			<div class="text-sm mt-1">
 				{formatMoney(perDiem)} <span class="text-xs italic">per diem</span>
 			</div>
+			<div
+				class="text-sm mt-1"
+				class:text-red-500={moneySpentToday > perDiem}
+				class:font-bold={moneySpentToday > perDiem}
+			>
+				{formatMoney(moneySpentToday)} <span class="text-xs italic">spent today</span>
+			</div>
+			{#if perDiemTomorrow}
+				<div class="text-sm mt-1">
+					{formatMoney(perDiemTomorrow)} <span class="text-xs italic">per diem +1 day</span>
+				</div>
+			{/if}
 		</div>
 		<div class="border-black p-3 border-2 w-100 h-100">
 			<h1>Saving target</h1>
