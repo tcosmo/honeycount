@@ -57,13 +57,6 @@
 
 	const DEFAULT_STORE_ID = 'honeycount';
 	function stateToLocalStorage(state: State) {
-		state.runningExpenses = state.runningExpenses.sort((a, b) => {
-			if (a[0] > b[0]) {
-				return -1;
-			} else {
-				return 1;
-			}
-		});
 		window.localStorage.setItem(DEFAULT_STORE_ID, stateToJSON(state));
 	}
 
@@ -72,6 +65,17 @@
 	}
 
 	let state: State = defaultState();
+
+	function sortState() {
+		state.runningExpenses = state.runningExpenses.sort((a, b) => {
+			if (a[0] > b[0]) {
+				return -1;
+			} else {
+				return 1;
+			}
+		});
+	}
+
 	onMount(async () => {
 		if (navigator.storage && navigator.storage.persist) {
 			const isPersisted = await navigator.storage.persist();
@@ -249,6 +253,7 @@
 				}
 				state.runningExpenses.push([inputExpenseDate, inputExpenseAmount ?? 0]);
 				state.runningExpenses = state.runningExpenses;
+				sortState();
 				inputExpenseAmount = null;
 				stateToLocalStorage(state);
 			}}
@@ -284,6 +289,7 @@
 									on:click={() => {
 										state.runningExpenses.splice(i, 1);
 										state.runningExpenses = state.runningExpenses;
+										sortState();
 										tableEditDisabled = true;
 										stateToLocalStorage(state);
 									}}>❌</button
