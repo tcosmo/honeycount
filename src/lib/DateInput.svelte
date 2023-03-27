@@ -1,5 +1,6 @@
 <script lang="ts">
 	import dayjs from 'dayjs';
+	import { createEventDispatcher } from 'svelte';
 
 	export let format = 'YYYY-MM-DD';
 	export let date = new Date();
@@ -20,6 +21,19 @@
 
 	$: input(date);
 	$: output(internal);
+
+	const dispatch = createEventDispatcher();
+
+	function dateChanged() {
+		dispatch('dateChanged', {});
+	}
 </script>
 
-<input type="date" bind:value={internal} class="border-black border" min={dateMin} max={dateMax} />
+<input
+	type="date"
+	bind:value={internal}
+	on:change={dateChanged}
+	class="border-black border"
+	min={dateMin}
+	max={dateMax}
+/>

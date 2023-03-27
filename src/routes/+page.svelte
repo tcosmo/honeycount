@@ -212,7 +212,31 @@
 
 	{#if showSettings}
 		<div class="flex flex-col items-start space-y-2 text-sm mb-2">
-			<div>Period start date:</div>
+			<div>
+				Period start date: <DateInput
+					bind:date={state.currentPeriodStartDate}
+					on:dateChanged={(_) => {
+						if (state.savingTarget[state.currentPeriodStartDate.toISOString()] === undefined) {
+							console.log('aa');
+							state.savingTarget[state.currentPeriodStartDate.toISOString()] =
+								DEFAULT_SAVING_TARGET;
+						}
+
+						if (state.salary[state.currentPeriodStartDate.toISOString()] === undefined) {
+							state.salary[state.currentPeriodStartDate.toISOString()] = DEFAULT_SALARY;
+						}
+
+						if (
+							state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()] === undefined
+						) {
+							state.fixedExpensesTotal[state.currentPeriodStartDate.toISOString()] =
+								DEFAULT_FIXED_EXPENSES;
+						}
+
+						stateToLocalStorage(state);
+					}}
+				/>
+			</div>
 			<div>
 				Period salary: <input
 					type="number"
