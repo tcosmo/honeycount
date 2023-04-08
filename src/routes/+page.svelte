@@ -293,7 +293,7 @@
 			</div>
 			{#if perDiemTomorrow}
 				<div class="text-sm mt-1">
-					{formatMoney(perDiemTomorrow)} <span class="text-xs italic">per diem +1 day</span>
+					{formatMoney(perDiemTomorrow)} <span class="text-xs italic">per diem tomorrow</span>
 				</div>
 			{/if}
 		</div>
