@@ -123,7 +123,7 @@
 			.filter(([date, _amount]) => {
 				let now = new Date();
 				return (
-					date.getDay() === now.getDay() &&
+					date.getDate() === now.getDate() &&
 					date.getFullYear() === now.getFullYear() &&
 					date.getMonth() === now.getMonth()
 				);
