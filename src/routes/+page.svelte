@@ -6,15 +6,25 @@
 
 	const TABLE_DATE_FORMAT = 'DD/MM';
 
-	const moneyFormatter = new Intl.NumberFormat('ie-IE', {
+	const moneyFormatterNoDecimals = new Intl.NumberFormat('ie-IE', {
 		style: 'currency',
 		currency: 'EUR',
 		minimumFractionDigits: 0,
 		maximumFractionDigits: 0
 	});
 
-	function formatMoney(money: number): string {
-		return moneyFormatter.format(money);
+	const moneyFormatterDecimals = new Intl.NumberFormat('ie-IE', {
+		style: 'currency',
+		currency: 'EUR',
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 2
+	});
+
+	function formatMoney(
+		money: number,
+		formatter: Intl.NumberFormat = moneyFormatterNoDecimals
+	): string {
+		return formatter.format(money);
 	}
 
 	function arraySum(array: number[]): number {
@@ -351,6 +361,7 @@
 							><input
 								class="border-black border w-10/12 px-2 py-1"
 								type="number"
+								step="0.01"
 								bind:value={inputExpenseAmount}
 								required
 							/></td
@@ -360,7 +371,7 @@
 					{#each sortedRunningExpenses as [date, amount], i}
 						<tr>
 							<td class="">{dayjs(date).format('DD/MM')}</td>
-							<td class="w-4/12">{formatMoney(amount)}</td>
+							<td class="w-4/12">{formatMoney(amount, moneyFormatterDecimals)}</td>
 							<td class="w-2/12 py-2"
 								><button
 									type="button"
