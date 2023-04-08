@@ -90,13 +90,17 @@
 
 	let state: State = defaultState();
 
-	$: sortedRunningExpenses = state.runningExpenses.sort((a, b) => {
-		if (a[0] > b[0]) {
-			return -1;
-		} else {
-			return 1;
-		}
-	});
+	$: filteredAndSortedRunningExpenses = state.runningExpenses
+		.filter(([date, _]) => {
+			return date >= state.currentPeriodStartDate && date < currentPeriodEndDate;
+		})
+		.sort((a, b) => {
+			if (a[0] > b[0]) {
+				return -1;
+			} else {
+				return 1;
+			}
+		});
 
 	let showSettings = false;
 	onMount(async () => {
@@ -356,7 +360,9 @@
 				</thead>
 				<tbody>
 					<tr>
-						<td><DateInput bind:date={inputExpenseDate} dateMin="2023-02-25" maxToday /></td>
+						<td>
+							<DateInput bind:date={inputExpenseDate} dateMin="2023-02-25" maxToday />
+						</td>
 						<td class=""
 							><input
 								class="border-black border w-10/12 px-2 py-1"
@@ -368,7 +374,7 @@
 						>
 						<td class="w-2/12 py-4"><button type="submit">✅</button></td>
 					</tr>
-					{#each sortedRunningExpenses as [date, amount], i}
+					{#each filteredAndSortedRunningExpenses as [date, amount], i}
 						<tr>
 							<td class="">{dayjs(date).format('DD/MM')}</td>
 							<td class="w-4/12">{formatMoney(amount, moneyFormatterDecimals)}</td>
